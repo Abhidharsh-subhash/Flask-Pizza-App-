@@ -36,18 +36,30 @@ user_model = auth_namespace.model(
 @auth_namespace.route('/signup')
 class SignUp(Resource):
     @auth_namespace.expect(signup_model)
+    # response from the POST request should be serialized using the user_model.
     @auth_namespace.marshal_with(user_model)
     def post(self):
         """
         Create a new user account
         """
         data = request.get_json()
+        # filter_by is used for simple conditions and filter is used when there is complex conditions
+        user_exist = User.query.filter_by(email=data.get('email')).first()
+        print(user_exist)
+        if user_exist:
+            return user_exist, HTTPStatus.BAD_REQUEST
+        print('after')
         new_user = User(
             username=data.get('username'),
             email=data.get('email'),
-            password_hash=generate_password_hash(data.get('password'))
+            password_hash=generate_password_hash(data.get('password')),
+            is_staff=True,
+            is_active=True
         )
-        new_user.save()
+        try:
+            new_user.save()
+        except Exception as e:
+            return {'error': str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
         return new_user, HTTPStatus.CREATED
 
 
