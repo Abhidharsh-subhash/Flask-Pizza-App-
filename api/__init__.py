@@ -7,6 +7,7 @@ from .utils import db
 from .models.orders import Order
 from .models.users import User
 from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager
 
 # create_app function is responsible for creating and configuring the Flask application.
 
@@ -15,6 +16,7 @@ def create_app(config=config_dict['dev']):
     app = Flask(__name__)
     app.config.from_object(config)
     db.init_app(app)
+    jwt = JWTManager(app)
     migrate = Migrate(app, db)
     api = Api(app)
     api.add_namespace(orders_namespace)

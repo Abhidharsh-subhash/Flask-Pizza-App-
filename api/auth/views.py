@@ -3,6 +3,8 @@ from flask import request
 from ..models.users import User
 from werkzeug.security import generate_password_hash, check_password_hash
 from http import HTTPStatus
+# get_jwt_identity which helps us to provide the identity of the user which created the token
+from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required, get_jwt_identity
 
 auth_namespace = Namespace(
     'auth', description='a namespace for authentication')
@@ -32,6 +34,13 @@ user_model = auth_namespace.model(
     }
 )
 
+login_model = auth_namespace.model(
+    'Login', {
+        'email': fields.String(required=True, description='An email'),
+        'password': fields.String(required=True, description='A password')
+    }
+)
+
 
 @auth_namespace.route('/signup')
 class SignUp(Resource):
@@ -45,10 +54,11 @@ class SignUp(Resource):
         data = request.get_json()
         # filter_by is used for simple conditions and filter is used when there is complex conditions
         user_exist = User.query.filter_by(email=data.get('email')).first()
-        print(user_exist)
         if user_exist:
-            return user_exist, HTTPStatus.BAD_REQUEST
-        print('after')
+            response = {
+                'message': 'email already exists'
+            }
+            return response, HTTPStatus.BAD_REQUEST
         new_user = User(
             username=data.get('username'),
             email=data.get('email'),
@@ -65,8 +75,33 @@ class SignUp(Resource):
 
 @auth_namespace.route('/login')
 class Login(Resource):
+    @auth_namespace.expect(login_model)
     def post(self):
         """
         Generate a JWT pair
         """
-        pass
+        data = request.get_json()
+        password = data.get('password')
+        email = data.get('email')
+        user = User.query.filter_by(email=email).first()
+        if (user is not None) and (check_password_hash(user.password_hash, password)):
+            access_token = create_access_token(identity=user.username)
+            refresh_token = create_refresh_token(identity=user.username)
+            response = {
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            }
+            return response, HTTPStatus.OK
+        response = {
+            'message': 'Invalid Username or Password'
+        }
+        return response, HTTPStatus.BAD_REQUEST
+
+
+@auth_namespace.route('/refresh')
+class Refresh(Resource):
+    @jwt_required(refresh=True)
+    def post(self):
+        username = get_jwt_identity()
+        access_token = create_access_token(identity=username)
+        return {'access_token': access_token}, HTTPStatus.OK
