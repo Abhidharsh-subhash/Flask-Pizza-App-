@@ -3,6 +3,7 @@ from ..models.orders import Order
 from http import HTTPStatus
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..models.users import User
+from ..utils import db
 
 orders_namespace = Namespace('orders', description='a namespace for orders')
 
@@ -59,41 +60,66 @@ class OrderGetCreate(Resource):
 
 @orders_namespace.route('/order/<int:order_id>')
 class GetUpdateDelete(Resource):
+    @orders_namespace.marshal_with(order_model)
+    @jwt_required()
     def get(self, order_id):
         """
         Retrieve an order by id
         """
-        pass
+        order = Order.get_by_id(order_id)
+        return order, HTTPStatus.OK
 
+    @orders_namespace.expect(order_model)
+    @orders_namespace.marshal_with(order_model)
+    @jwt_required()
     def put(self, order_id):
         """
         Update an order by id
         """
-        pass
+        order = Order.get_by_id(order_id)
+        data = orders_namespace.payload
+        order.quantity = data.get('quantity')
+        order.size = data.get('size')
+        order.flavour = data.get('flavour')
+        db.session.commit()
+        return order, HTTPStatus.OK
 
+    @orders_namespace.marshal_with(order_model)
+    @jwt_required()
     def delete(self, order_id):
         """
         Delete an order by id
         """
-        pass
+        order = Order.get_by_id(order_id)
+        order.delete()
+        return order, HTTPStatus.NO_CONTENT
 
 
 @orders_namespace.route('/user/<int:user_id>/order/<int:order_id>')
 class GetSpecificOrderByUser(Resource):
+    @orders_namespace.marshal_with(order_model)
+    @jwt_required()
     def get(self, user_id, order_id):
         """
         Get a user's specific order  
         """
-        pass
+        user = User.get_by_id(user_id)
+        order = Order.query.filter_by(
+            id=order_id).filter_by(user=user.id).first()
+        return order, HTTPStatus.OK
 
 
 @orders_namespace.route('/user/<int:user_id>/orders')
 class UserOrders(Resource):
+    @orders_namespace.marshal_list_with(order_model)
+    @jwt_required()
     def get(self, user_id):
         """
         Get all orders by a specific users
         """
-        pass
+        user = User.get_by_id(user_id)
+        orders = user.order
+        return orders, HTTPStatus.OK
 
 
 @orders_namespace.route('/order/status/<int:order_id>')
