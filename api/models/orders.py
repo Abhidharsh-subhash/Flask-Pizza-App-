@@ -21,6 +21,7 @@ class Order(db.Model):
     __tablename__ = 'orders'
     id = db.Column(db.Integer(), primary_key=True)
     size = db.Column(db.Enum(Sizes), default=Sizes.SMALL)
+    quantity = db.Column(db.Integer(), nullable=False)
     order_status = db.Column(db.Enum(OrderStatus), default=OrderStatus.PENDING)
     flavour = db.Column(db.String(), nullable=False)
     date_created = db.Column(db.DateTime(), default=datetime.utcnow)
@@ -28,3 +29,7 @@ class Order(db.Model):
 
     def __repr__(self):
         return f'<order {self.id}>'
+
+    def save(self):
+        db.session.add(self)
+        db.session.commit()

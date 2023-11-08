@@ -17,7 +17,7 @@ class DevConfig(Config):
     SQLALCHEMY_TRACK_MODIFICATION = False
     SQLALCHEMY_ECHO = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + \
-        os.path.join(BASE_DIR, 'db.sqlite3')
+        os.path.join(BASE_DIR, 'db.sqlite1')
 
 
 class TestConfig(Config):

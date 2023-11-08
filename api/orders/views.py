@@ -1,4 +1,8 @@
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, fields
+from ..models.orders import Order
+from http import HTTPStatus
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from ..models.users import User
 
 orders_namespace = Namespace('orders', description='a namespace for orders')
 
@@ -7,20 +11,50 @@ orders_namespace = Namespace('orders', description='a namespace for orders')
 #     def get(self):
 #         return {'message':'hello orders'}
 
+order_model = orders_namespace.model(
+    'Order', {
+        'id': fields.Integer(description='Primay key'),
+        'size': fields.String(description='size of pizza', required=True, enum=['SMALL', 'MEDIUM', 'LARGE', 'EXTRA_LARGE']),
+        'order_status': fields.String(description='status of the order', required=True, enum=['PENDING', 'IN_TRANSIT', 'DELIVERED']),
+        'flavour': fields.String(description='flavour of the pizza')
+    }
+)
+
 
 @orders_namespace.route('/orders')
 class OrderGetCreate(Resource):
+    @orders_namespace.marshal_with(order_model)
+    @jwt_required()
     def get(self):
         """
         Get all orders
         """
-        pass
+        orders = Order.query.all()
+        return orders, HTTPStatus.OK
 
+    @orders_namespace.expect(order_model)
+    @orders_namespace.marshal_with(order_model)
+    @jwt_required()
     def post(self):
         """
         Create new order
         """
-        pass
+        username = get_jwt_identity()
+        current_user = User.query.filter_by(username=username).first()
+        if current_user is not None:
+            data = orders_namespace.payload
+            new_order = Order(
+                size=data.get('size'),
+                quantity=data.get('quantity'),
+                flavour=data.get('flavour')
+            )
+            new_order.user = current_user.id
+            new_order.save()
+            return new_order, HTTPStatus.CREATED
+        response = {
+            'message': 'Something went wrong, Please try again'
+        }
+        return response, HTTPStatus.BAD_REQUEST
 
 
 @orders_namespace.route('/order/<int:order_id>')
