@@ -16,12 +16,16 @@ class DevConfig(Config):
     DEBUG = config('DEBUG', cast=bool)
     SQLALCHEMY_TRACK_MODIFICATION = False
     SQLALCHEMY_ECHO = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + \
-        os.path.join(BASE_DIR, 'db.sqlite1')
+    # for testing we uses an in memory database
+    SQLALCHEMY_DATABASE_URI = 'sqlite://'
 
 
 class TestConfig(Config):
-    pass
+    TESTING = True
+    SQLALCHEMY_TRACK_MODIFICATION = False
+    SQLALCHEMY_ECHO = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + \
+        os.path.join(BASE_DIR, 'db.sqlite1')
 
 
 class ProdConfig(Config):
