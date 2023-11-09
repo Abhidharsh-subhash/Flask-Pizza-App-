@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from http import HTTPStatus
 # get_jwt_identity which helps us to provide the identity of the user which created the token
 from flask_jwt_extended import create_refresh_token, create_access_token, jwt_required, get_jwt_identity
+from werkzeug.exceptions import Conflict, BadRequest
 
 auth_namespace = Namespace(
     'auth', description='a namespace for authentication')
@@ -70,6 +71,7 @@ class SignUp(Resource):
             new_user.save()
         except Exception as e:
             return {'error': str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
+            # raise Conflict(f'User with the email {data.get('email')} exists')
         return new_user, HTTPStatus.CREATED
 
 
@@ -92,10 +94,11 @@ class Login(Resource):
                 'refresh_token': refresh_token
             }
             return response, HTTPStatus.OK
-        response = {
-            'message': 'Invalid Username or Password'
-        }
-        return response, HTTPStatus.BAD_REQUEST
+        # response = {
+        #     'message': 'Invalid Username or Password'
+        # }
+        # return response, HTTPStatus.BAD_REQUEST
+        raise BadRequest('Invalid username or password')
 
 
 @auth_namespace.route('/refresh')

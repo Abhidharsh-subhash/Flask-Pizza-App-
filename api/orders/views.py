@@ -21,6 +21,12 @@ order_model = orders_namespace.model(
     }
 )
 
+order_status_model = orders_namespace.model(
+    'OrderStatus', {
+        'order_status': fields.String(description='Status of the order', required=True, enum=['PENDING', 'IN_TRANSIT', 'DEVLIVERED'])
+    }
+)
+
 
 @orders_namespace.route('/orders')
 class OrderGetCreate(Resource):
@@ -124,8 +130,15 @@ class UserOrders(Resource):
 
 @orders_namespace.route('/order/status/<int:order_id>')
 class UpdateOrderStatus(Resource):
+    @orders_namespace.expect(order_status_model)
+    @orders_namespace.marshal_with(order_model)
+    @jwt_required()
     def patch(self, order_id):
         """
         Update the order status
         """
-        pass
+        order = Order.get_by_id(order_id)
+        data = orders_namespace.payload
+        order.order_status = data.get('order_status')
+        db.session.commit()
+        return order, HTTPStatus.OK
